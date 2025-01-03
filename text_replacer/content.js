@@ -5,58 +5,66 @@ function applyReplacements(e) {
         
         chrome.storage.sync.get(['replacements'], function(result) {
             const replacements = result.replacements || {};
-            const text = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' 
-                ? e.target.value 
-                : e.target.textContent;
-            let newText = text;
-            
-            // Store cursor position and selection
             const isContentEditable = e.target.hasAttribute('contenteditable');
+            
+            // Get text and preserve HTML for contenteditable
+            const text = isContentEditable 
+                ? e.target.innerHTML 
+                : e.target.value;
+            
             const cursorPos = isContentEditable 
                 ? getContentEditableCaretPosition(e.target)
                 : e.target.selectionStart;
+                
+            let newText = text;
             let offsetAdjustment = 0;
             
+            // Process replacements
             for (const [shortcut, phrase] of Object.entries(replacements)) {
                 if (text.includes(shortcut)) {
-                    const regex = new RegExp(escapeRegExp(shortcut), 'g');
-                    let match;
-                    let lastIndex = 0;
+                    // For contenteditable, we need to handle HTML entities
+                    const escapedShortcut = isContentEditable 
+                        ? escapeRegExp(shortcut).replace(/\n/g, '<br>?\\s*')
+                        : escapeRegExp(shortcut);
+                        
+                    const regex = new RegExp(escapedShortcut, 'g');
                     
+                    // For contenteditable, preserve line breaks in replacement
+                    const replacementText = isContentEditable 
+                        ? phrase.replace(/\n/g, '<br>') 
+                        : phrase;
+                    
+                    let match;
                     // Find all matches before cursor position
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = text;
+                    const plainText = tempDiv.textContent;
+                    
                     while ((match = regex.exec(text)) !== null) {
-                        const matchIndex = match.index;
+                        const matchIndex = getPlainTextIndex(text.substring(0, match.index));
                         if (matchIndex < cursorPos) {
                             const lengthDiff = phrase.length - shortcut.length;
                             offsetAdjustment += lengthDiff;
                         }
-                        lastIndex = regex.lastIndex;
                     }
                     
-                    newText = newText.replace(regex, phrase);
+                    newText = newText.replace(regex, replacementText);
                 }
             }
             
             if (text !== newText) {
-                // Calculate new cursor position
                 const newCursorPos = cursorPos + offsetAdjustment;
                 
-                // Apply the text change
+                // Apply changes while preserving structure
                 if (isContentEditable) {
-                    e.target.textContent = newText;
+                    e.target.innerHTML = newText;
                     setContentEditableCaretPosition(e.target, newCursorPos);
                 } else {
                     e.target.value = newText;
-                    // Immediately set selection range
                     e.target.setSelectionRange(newCursorPos, newCursorPos);
-                    
-                    // Also schedule a delayed selection range set as backup
-                    requestAnimationFrame(() => {
-                        e.target.setSelectionRange(newCursorPos, newCursorPos);
-                    });
                 }
                 
-                // Dispatch input event to ensure site's handlers are triggered
+                // Dispatch input event
                 const inputEvent = new InputEvent('input', {
                     bubbles: true,
                     cancelable: true,
@@ -69,6 +77,13 @@ function applyReplacements(e) {
     }
 }
 
+// Helper function to get plain text index from HTML
+function getPlainTextIndex(html) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent.length;
+}
+
 // Helper function to get caret position in contenteditable elements
 function getContentEditableCaretPosition(element) {
     const selection = window.getSelection();
@@ -78,7 +93,11 @@ function getContentEditableCaretPosition(element) {
     const preCaretRange = range.cloneRange();
     preCaretRange.selectNodeContents(element);
     preCaretRange.setEnd(range.endContainer, range.endOffset);
-    return preCaretRange.toString().length;
+    
+    // Convert HTML to plain text for position calculation
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = preCaretRange.cloneContents().innerHTML;
+    return tempDiv.textContent.length;
 }
 
 // Helper function to set caret position in contenteditable elements
@@ -111,7 +130,6 @@ function setContentEditableCaretPosition(element, position) {
     traverseNodes(element);
     
     if (!found) {
-        // If position wasn't found, set to end
         range.selectNodeContents(element);
         range.collapse(false);
     }
