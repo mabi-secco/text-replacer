@@ -1,42 +1,13 @@
-// Debounce function to improve performance
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// Cache regex patterns for better performance
-const regexCache = new Map();
-function getRegexFromCache(pattern) {
-    if (!regexCache.has(pattern)) {
-        regexCache.set(pattern, new RegExp(escapeRegExp(pattern), 'g'));
-    }
-    return regexCache.get(pattern);
-}
-
-// Helper function to escape special characters in regex
-function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * Applies text replacements to the input field
- * @param {Event} e - The input event
- */
 function applyReplacements(e) {
-    // Check if the target is an editable element
-    if (!isEditableElement(e.target)) return;
-
-    chrome.storage.sync.get(['replacements'])
-        .then(result => {
+    if (e.target.tagName === 'INPUT' || 
+        e.target.tagName === 'TEXTAREA' || 
+        e.target.hasAttribute('contenteditable')) {
+        
+        chrome.storage.sync.get(['replacements'], function(result) {
             const replacements = result.replacements || {};
-            const text = getElementText(e.target);
+            const text = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' 
+                ? e.target.value 
+                : e.target.textContent;
             let newText = text;
             
             // Store cursor position and selection
@@ -44,17 +15,15 @@ function applyReplacements(e) {
             const selectionEnd = e.target.selectionEnd;
             let offsetAdjustment = 0;
             
-            // Process all replacements
             for (const [shortcut, phrase] of Object.entries(replacements)) {
                 if (text.includes(shortcut)) {
-                    const regex = getRegexFromCache(shortcut);
-                    regex.lastIndex = 0; // Reset regex state
-                    
+                    const regex = new RegExp(escapeRegExp(shortcut), 'g');
                     let match;
                     while ((match = regex.exec(newText)) !== null) {
                         const matchIndex = match.index;
                         if (matchIndex < cursorPos) {
-                            offsetAdjustment += phrase.length - shortcut.length;
+                            const lengthDiff = phrase.length - shortcut.length;
+                            offsetAdjustment += lengthDiff;
                         }
                     }
                     
@@ -63,114 +32,61 @@ function applyReplacements(e) {
             }
             
             if (text !== newText) {
-                updateElementText(e.target, newText, cursorPos + offsetAdjustment);
+                // Calculate new cursor position
+                const newCursorPos = cursorPos + offsetAdjustment;
+                
+                // Apply the text change
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    e.target.value = newText;
+                } else {
+                    e.target.textContent = newText;
+                }
+                
+                // Try multiple methods to set cursor position
+                try {
+                    // Method 1: Standard method
+                    e.target.setSelectionRange(newCursorPos, newCursorPos);
+                } catch (err) {
+                    try {
+                        // Method 2: Create a selection range
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+                        
+                        if (e.target.childNodes.length > 0) {
+                            range.setStart(e.target.childNodes[0], newCursorPos);
+                            range.collapse(true);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    } catch (err2) {
+                        // Method 3: Delayed cursor positioning
+                        setTimeout(() => {
+                            try {
+                                e.target.setSelectionRange(newCursorPos, newCursorPos);
+                            } catch (err3) {
+                                // If all methods fail, we'll let the site handle cursor positioning
+                                console.log('Could not set cursor position');
+                            }
+                        }, 0);
+                    }
+                }
+                
+                // Dispatch input event to ensure site's handlers are triggered
+                const inputEvent = new InputEvent('input', {
+                    bubbles: true,
+                    cancelable: true,
+                    inputType: 'insertText',
+                    data: newText
+                });
+                e.target.dispatchEvent(inputEvent);
             }
-        })
-        .catch(error => {
-            console.error('Error accessing storage:', error);
         });
-}
-
-/**
- * Checks if an element is editable
- * @param {HTMLElement} element - The element to check
- * @returns {boolean}
- */
-function isEditableElement(element) {
-    return element.tagName === 'INPUT' || 
-           element.tagName === 'TEXTAREA' || 
-           element.hasAttribute('contenteditable');
-}
-
-/**
- * Gets text content from an element
- * @param {HTMLElement} element - The element to get text from
- * @returns {string}
- */
-function getElementText(element) {
-    return element.tagName === 'INPUT' || element.tagName === 'TEXTAREA'
-        ? element.value
-        : element.textContent;
-}
-
-/**
- * Updates element text and cursor position
- * @param {HTMLElement} element - The element to update
- * @param {string} newText - The new text content
- * @param {number} newCursorPos - The new cursor position
- */
-function updateElementText(element, newText, newCursorPos) {
-    // Update text content
-    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-        element.value = newText;
-    } else {
-        element.textContent = newText;
     }
-    
-    // Set cursor position using different methods
-    setCursorPosition(element, newCursorPos);
-    
-    // Dispatch input event
-    dispatchInputEvent(element, newText);
 }
 
-/**
- * Sets cursor position using multiple fallback methods
- * @param {HTMLElement} element - The element to set cursor in
- * @param {number} position - The cursor position
- */
-function setCursorPosition(element, position) {
-    const methods = [
-        // Method 1: Standard method
-        () => element.setSelectionRange(position, position),
-        
-        // Method 2: Range method
-        () => {
-            const range = document.createRange();
-            const sel = window.getSelection();
-            
-            if (element.childNodes.length > 0) {
-                range.setStart(element.childNodes[0], position);
-                range.collapse(true);
-                sel.removeAllRanges();
-                sel.addRange(range);
-            }
-        }
-    ];
-
-    for (const method of methods) {
-        try {
-            method();
-            return;
-        } catch (err) {
-            continue;
-        }
-    }
-
-    // Final fallback: Delayed positioning
-    setTimeout(() => {
-        try {
-            element.setSelectionRange(position, position);
-        } catch (err) {
-            console.warn('Could not set cursor position:', err);
-        }
-    }, 0);
+// Helper function to escape special characters in regex
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Dispatches an input event
- * @param {HTMLElement} element - The element to dispatch event on
- * @param {string} text - The new text content
- */
-function dispatchInputEvent(element, text) {
-    const inputEvent = new InputEvent('input', {
-        bubbles: true,
-        cancelable: true,
-        inputType: 'insertText',
-        data: text
-    });
-    element.dispatchEvent(inputEvent);
-}
-
-// Add event listener with debouncing
-document.addEventListener('input', debounce(applyReplacements, 100));
+document.addEventListener('input', applyReplacements);
