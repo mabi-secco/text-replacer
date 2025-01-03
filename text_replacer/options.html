@@ -1,22 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Settings - Text Replacer</title>
+    <title>Text Replacer Settings</title>
     <link rel="stylesheet" type="text/css" href="options.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
 </head>
 <body>
     <div class="container">
-        <h1>Manage Replacements</h1>
-        
-        <div class="add-form">
-            <input type="text" id="shortcut" placeholder="Shortcut (e.g., ;gm)">
-            <input type="text" id="phrase" placeholder="Phrase (e.g., good morning)">
-            <button id="add">Add</button>
+        <header>
+            <h1>Text Replacer</h1>
+            <p class="subtitle">Manage your text shortcuts and replacements</p>
+        </header>
+
+        <div class="card">
+            <h2>Add New Replacement</h2>
+            <div class="add-form">
+                <div class="input-group">
+                    <label for="shortcut">Shortcut</label>
+                    <input type="text" id="shortcut" placeholder="e.g., ;gm">
+                    <small>This is what you'll type</small>
+                </div>
+                <div class="input-group">
+                    <label for="phrase">Phrase</label>
+                    <input type="text" id="phrase" placeholder="e.g., Good morning!">
+                    <small>This is what it will become</small>
+                </div>
+                <button id="add" class="btn-primary">
+                    Add Replacement
+                </button>
+            </div>
         </div>
 
-        <div class="list-container">
-            <h2>Existing Replacements</h2>
-            <div id="replacements-list"></div>
+        <div class="card">
+            <div class="card-header">
+                <h2>Your Replacements</h2>
+                <span id="replacement-count" class="badge">0</span>
+            </div>
+            <div id="replacements-list" class="replacements-list">
+                <!-- Items will be added here dynamically -->
+            </div>
         </div>
     </div>
     <script src="options.js"></script>
