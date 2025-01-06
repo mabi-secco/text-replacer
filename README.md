@@ -1,6 +1,7 @@
 # Text Replacer Chrome Extension
 
-A powerful Chrome extension that automatically replaces text shortcuts with longer phrases as you type. Perfect for frequently used expressions, email templates, or code snippets.
+Text Replacer is a browser extension that automatically replaces text shortcuts with predefined phrases in any text input field. It's useful for quickly typing common phrases, email templates, or any frequently used text.
+
 
 ## Features
 
@@ -9,6 +10,9 @@ A powerful Chrome extension that automatically replaces text shortcuts with long
 - **Smart Cursor Positioning**: Maintains proper cursor position after replacements
 - **Sync Across Devices**: Your shortcuts sync across all Chrome instances where you're signed in
 - **Performance Optimized**: Uses debouncing and caching for smooth typing experience
+  
+
+### Overview
 
 ## Installation
 
@@ -17,9 +21,7 @@ A powerful Chrome extension that automatically replaces text shortcuts with long
 3. Enable "Developer mode" in the top right
 4. Click "Load unpacked" and select the extension directory
 
-## Usage
-
-### Setting Up Shortcuts
+## Setting Up Shortcuts
 
 1. Click the extension icon in your Chrome toolbar
 2. Click "Options" to open the settings page
@@ -41,31 +43,50 @@ Example:
 - Shortcuts are case-sensitive
 - You can use multi-line text in both shortcuts and replacements
 - Changes sync automatically across devices
-- Works in most websites and text editors
 
-## Technical Details
+  ______________________________________________________________________________________________________________________________________
+  
 
-The extension uses:
-- Chrome Storage Sync API for cross-device synchronization
-- MutationObserver for handling dynamic content
-- Debouncing for performance optimization
-- Regex caching for faster replacements
+  # Extensão Text Replacer para Chrome - PT
 
-## File Structure
+Text Replacer é uma extensão de navegador que substitui automaticamente atalhos de texto por frases predefinidas em qualquer campo de entrada de texto. É útil para digitar rapidamente frases comuns, modelos de e-mail ou qualquer texto frequentemente utilizado.
 
-```
-text_replacer/
-├── manifest.json        # Extension configuration
-├── content.js          # Main replacement logic
-├── options.html        # Settings page HTML
-├── options.js          # Settings page logic
-└── options.css         # Settings page styles
-```
+## Funcionalidades
 
-## Privacy
+- **Substituição de Texto em Tempo Real**: Substitui automaticamente seus atalhos enquanto você digita
+- **Funciona em Qualquer Lugar**: Compatível com campos de entrada, áreas de texto e elementos editáveis
+- **Posicionamento Inteligente do Cursor**: Mantém a posição adequada do cursor após as substituições
+- **Sincronização entre Dispositivos**: Seus atalhos são sincronizados em todas as instâncias do Chrome onde você está conectado
+- **Desempenho Otimizado**: Utiliza debouncing e cache para uma experiência de digitação suave
 
-This extension:
-- Does not collect any personal data
-- Does not transmit any data to external servers
-- Only stores your shortcuts in Chrome's sync storage
-- Only runs on pages where text input is needed
+### Visão Geral
+
+## Instalação
+
+1. Clone este repositório ou baixe o arquivo ZIP
+2. Abra o Chrome e navegue até `chrome://extensions/`
+3. Ative o "Modo desenvolvedor" no canto superior direito
+4. Clique em "Carregar sem compactação" e selecione o diretório da extensão
+
+## Configurando Atalhos
+
+1. Clique no ícone da extensão na barra de ferramentas do Chrome
+2. Clique em "Opções" para abrir a página de configurações
+3. Adicione novos atalhos:
+   - Digite seu texto de atalho (ex: `/sig`)
+   - Digite o texto de substituição (ex: sua assinatura de e-mail)
+   - Clique em "Adicionar" para salvar
+
+### Usando Atalhos
+
+Simplesmente digite seu atalho em qualquer campo de entrada de texto, e ele será automaticamente substituído pelo texto definido.
+
+Exemplo:
+- Digite `/sig` → Será substituído por sua assinatura completa
+- Digite `/addr` → Será substituído por seu endereço
+
+### Dicas
+
+- Os atalhos são sensíveis a maiúsculas e minúsculas
+- Você pode usar texto com múltiplas linhas tanto nos atalhos quanto nas substituições
+- As alterações são sincronizadas automaticamente entre dispositivos
